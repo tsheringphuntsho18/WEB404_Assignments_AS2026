@@ -1,0 +1,13 @@
+{
+  "name": "upload-lab",
+  "version": "1.0.0",
+  "scripts": {
+    "vuln": "node vulnerable.js",
+    "secure": "node secure.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "file-type": "^16.5.4",
+    "multer": "^1.4.5-lts.1"
+  }
+}

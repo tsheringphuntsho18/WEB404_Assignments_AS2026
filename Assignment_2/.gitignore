@@ -1,0 +1,14 @@
+# Node.js dependencies
+upload-lab/node_modules/
+
+# Runtime upload storage
+upload-lab/private_uploads/*
+upload-lab/public/uploads/*
+
+# Local attack/test files created during the lab
+test_files/
+
+# Local environment and OS files
+.env
+.env.*
+.DS_Store

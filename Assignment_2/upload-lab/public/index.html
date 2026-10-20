@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload Lab</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --text: #1d2433; --muted: #6b7489; --border: #dfe3ee;
+    --accent: #3b5bdb; --accent-d: #2f49b0;
+    --ok-bg: #e6f6ec; --ok: #1b7a43; --err-bg: #fdeaea; --err: #b42323;
+    --warn-bg: #fff4e0; --warn: #9a5b00; --safe-bg: #e6f6ec; --safe: #1b7a43;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151d; --card: #1b1f2b; --text: #e8ebf3; --muted: #9aa3b8; --border: #2c3244;
+      --accent: #6c8cff; --accent-d: #5776e8;
+      --ok-bg: #12301f; --ok: #5fd08d; --err-bg: #3a1717; --err: #ff8a8a;
+      --warn-bg: #3a2b0f; --warn: #ffc266; --safe-bg: #12301f; --safe: #5fd08d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .site-header {
+    width: 100%; max-width: 520px; display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 14px; color: var(--muted);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: .9rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .brand-mark {
+    display: grid; width: 32px; height: 32px; place-items: center; color: #fff; background: var(--accent);
+    border-radius: 10px; font-size: .72rem; letter-spacing: 0;
+  }
+  .header-meta { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .card {
+    width: 100%; max-width: 520px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(20, 30, 60, .08);
+  }
+  h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  .sub { margin: 0 0 18px; color: var(--muted); font-size: .95rem; }
+  .badge {
+    display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .04em;
+    padding: 4px 10px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .badge.vuln { background: var(--err-bg); color: var(--err); }
+  .badge.secure { background: var(--safe-bg); color: var(--safe); }
+  .badge.generic { background: var(--border); color: var(--muted); }
+  .note { border-radius: 10px; padding: 10px 14px; font-size: .88rem; margin-bottom: 18px; line-height: 1.45; }
+  .note.vuln { background: var(--warn-bg); color: var(--warn); }
+  .note.secure { background: var(--safe-bg); color: var(--safe); }
+  .drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; min-height: 180px; border: 2px dashed var(--border); border-radius: 14px;
+    padding: 30px 16px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s; color: var(--muted);
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(59, 91, 219, .06); }
+  .drop-icon {
+    display: grid; width: 56px; height: 56px; margin: 0 auto 12px; place-items: center;
+    color: var(--accent); background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: 0 5px 12px rgba(20, 30, 60, .07);
+  }
+  .drop svg { width: 30px; height: 30px; stroke: currentColor; }
+  .drop strong { color: var(--text); }
+  #file { display: none; }
+  .file-info {
+    display: none; align-items: center; gap: 12px; margin-top: 14px; padding: 12px;
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  .file-info.show { display: flex; }
+  .thumb {
+    width: 44px; height: 44px; border-radius: 8px; background: var(--bg); object-fit: cover;
+    display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: var(--muted);
+  }
+  .meta { flex: 1; min-width: 0; }
+  .meta .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meta .size { font-size: .82rem; color: var(--muted); }
+  .clear { background: none; border: 0; color: var(--muted); font-size: 1.3rem; cursor: pointer; padding: 4px 8px; }
+  .clear:hover { color: var(--err); }
+  button.go {
+    width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  button.go:hover:not(:disabled) { background: var(--accent-d); }
+  button.go:disabled { opacity: .5; cursor: not-allowed; }
+  .progress { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 14px; display: none; }
+  .progress.show { display: block; }
+  .bar { height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+  .result { display: none; margin-top: 16px; padding: 14px; border-radius: 12px; font-size: .92rem; line-height: 1.5; word-break: break-word; }
+  .result.show { display: block; }
+  .result.ok { background: var(--ok-bg); color: var(--ok); }
+  .result.err { background: var(--err-bg); color: var(--err); }
+  .result a { color: inherit; font-weight: 700; }
+  .result .title { font-weight: 700; margin-bottom: 4px; }
+  .rules { margin: 18px 0 0; padding: 0; list-style: none; font-size: .85rem; color: var(--muted); }
+  .rules li { padding: 3px 0; }
+  .rules li::before { content: "\2713  "; color: var(--accent); font-weight: 700; }
+  .foot { margin-top: 18px; font-size: .78rem; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="brand"><span class="brand-mark" aria-hidden="true">UL</span><span>Upload Lab</span></div>
+  <span class="header-meta">WEB404 / Assignment 2</span>
+</header>
+<main class="card">
+  <span id="badge" class="badge generic">UPLOAD LAB</span>
+  <h1>File Upload</h1>
+  <p class="sub">Choose a file or drag it here, then press Upload.</p>
+  <div id="note" class="note" style="display:none"></div>
+
+  <label id="drop" class="drop" for="file">
+    <span class="drop-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+      </svg>
+    </span>
+    <div><strong>Click to browse</strong> or drag and drop</div>
+  </label>
+  <input id="file" type="file" name="file">
+
+  <div id="info" class="file-info">
+    <div id="thumb" class="thumb">FILE</div>
+    <div class="meta"><div id="fname" class="name"></div><div id="fsize" class="size"></div></div>
+    <button id="clear" class="clear" type="button" title="Remove file" aria-label="Remove file">&times;</button>
+  </div>
+
+  <div id="progress" class="progress"><div id="bar" class="bar"></div></div>
+  <button id="go" class="go" type="button" disabled>Upload</button>
+  <div id="result" class="result" role="status"></div>
+
+  <ul id="rules" class="rules" style="display:none"></ul>
+  <div class="foot">The server decides what is accepted. No checks are done in this page.</div>
+</main>
+
+<script>
+(function () {
+  var port = location.port;
+  var mode = port === '3000' ? 'vuln' : port === '3001' ? 'secure' : 'generic';
+  var $ = function (id) { return document.getElementById(id); };
+  var fileInput = $('file'), drop = $('drop'), info = $('info'), go = $('go'), result = $('result');
+  var current = null;
+
+  // Mode banner
+  var badge = $('badge'), note = $('note'), rules = $('rules');
+  if (mode === 'vuln') {
+    badge.className = 'badge vuln'; badge.textContent = 'VULNERABLE VERSION';
+    note.className = 'note vuln'; note.style.display = 'block';
+    note.textContent = 'Demo only: this version accepts any file type, any size, and stores files in the web root.';
+  } else if (mode === 'secure') {
+    badge.className = 'badge secure'; badge.textContent = 'SECURE VERSION';
+    note.className = 'note secure'; note.style.display = 'block';
+    note.textContent = 'Protected: uploads are validated on the server before they are stored.';
+    ['Allowed types: JPG, PNG, PDF', 'Maximum size: 2 MB, one file per upload',
+     'File content must match its extension', 'Files are renamed and stored privately']
+      .forEach(function (t) { var li = document.createElement('li'); li.textContent = t; rules.appendChild(li); });
+    rules.style.display = 'block';
+  }
+
+  function fmt(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(2) + ' MB';
+  }
+
+  function setFile(f) {
+    current = f; result.className = 'result'; result.textContent = '';
+    if (!f) { info.classList.remove('show'); go.disabled = true; return; }
+    $('fname').textContent = f.name; $('fsize').textContent = fmt(f.size);
+    var th = $('thumb'); th.textContent = ''; th.removeAttribute('style');
+    if (/^image\//.test(f.type)) {
+      var img = document.createElement('img'); img.className = 'thumb'; img.alt = '';
+      img.src = URL.createObjectURL(f); th.replaceWith(img); img.id = 'thumb';
+    } else {
+      var ext = (f.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase();
+      if (th.tagName === 'IMG') { var d = document.createElement('div'); d.id = 'thumb'; d.className = 'thumb'; th.replaceWith(d); th = d; }
+      th.textContent = ext;
+    }
+    info.classList.add('show'); go.disabled = false;
+  }
+
+  fileInput.addEventListener('change', function () { setFile(fileInput.files[0] || null); });
+  $('clear').addEventListener('click', function () { fileInput.value = ''; setFile(null); });
+
+  ['dragenter', 'dragover'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer.files[0]; if (!f) return;
+    var dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files; setFile(f);
+  });
+
+  function show(ok, title, text, linkHref, linkText) {
+    result.className = 'result show ' + (ok ? 'ok' : 'err');
+    result.textContent = '';
+    var t = document.createElement('div'); t.className = 'title'; t.textContent = title; result.appendChild(t);
+    var p = document.createElement('div'); p.textContent = text; result.appendChild(p);
+    if (linkHref) {
+      var a = document.createElement('a'); a.href = linkHref; a.textContent = linkText;
+      a.target = '_blank'; a.rel = 'noopener'; result.appendChild(a);
+    }
+  }
+
+  go.addEventListener('click', function () {
+    if (!current) return;
+    var fd = new FormData(); fd.append('file', current);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/upload');
+    var prog = $('progress'), bar = $('bar');
+    prog.classList.add('show'); bar.style.width = '0'; go.disabled = true; go.textContent = 'Uploading...';
+    xhr.upload.onprogress = function (e) { if (e.lengthComputable) bar.style.width = (e.loaded / e.total * 100) + '%'; };
+    xhr.onload = function () {
+      prog.classList.remove('show'); go.textContent = 'Upload'; go.disabled = false;
+      var body = xhr.responseText || '';
+      if (xhr.status >= 200 && xhr.status < 300) {
+        var m = body.match(/href="(\/uploads\/[^"]+)"/);      // vulnerable app link
+        var id = body.match(/\/files\/([0-9a-f-]{36}\.[a-z]+)/); // secure app file id
+        if (m) show(true, 'Upload successful', 'File stored in the web root.', m[1], 'Open uploaded file');
+        else if (id) show(true, 'Upload successful', 'Stored as ' + id[1], '/files/' + id[1], 'Download file');
+        else show(true, 'Upload successful', body.replace(/<[^>]*>/g, ''));
+      } else {
+        show(false, 'Upload rejected', body.replace(/^Rejected:\s*/, '') || ('HTTP ' + xhr.status));
+      }
+    };
+    xhr.onerror = function () {
+      prog.classList.remove('show'); go.textContent = 'Upload'; go.disabled = false;
+      show(false, 'Network error', 'Could not reach the server.');
+    };
+    xhr.send(fd);
+  });
+})();
+</script>
+</body>
+</html>
