@@ -168,7 +168,7 @@ if (!detected || detected.mime !== ALLOWED[ext]) { /* reject */ }
 const id = crypto.randomUUID() + '.' + detected.ext;
 ```
 
-![secure code](screenshots/code.png)
+![secure code](screenshots/code.png)  
 *Screenshot 11: Code of the secure implementation.*
 
 ## 8. Testing the Secure Version
@@ -178,7 +178,7 @@ Start the secure server:
 ```bash
 node secure.js
 ```
-![node secure](screenshots/nodesecuring.png)
+![node secure](screenshots/nodesecuring.png)  
 *Screenshot 12: Secure app running.*
 
 ![secire upload form](screenshots/secureuploadform.png)

