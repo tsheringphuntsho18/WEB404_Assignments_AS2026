@@ -1,0 +1,9 @@
+{
+  "name": "csrf-lab",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cookie-parser": "^1.4.6",
+    "csrf": "^3.1.0"
+  }
+}
