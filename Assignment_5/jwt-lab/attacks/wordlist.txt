@@ -1,0 +1,12 @@
+123456
+password
+secret
+qwerty
+letmein
+admin
+jwtsecret
+mysecret
+changeme
+jwt123
+supersecret
+topsecret123

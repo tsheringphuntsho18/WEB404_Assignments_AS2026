@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JWT Auth Lab</title>
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--text:#1d2433;--muted:#6b7489;--border:#dfe3ee;--accent:#3b5bdb;
+        --ok-bg:#e6f6ec;--ok:#1b7a43;--err-bg:#fdeaea;--err:#b42323}
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#12151d;--card:#1b1f2b;--text:#e8ebf3;--muted:#9aa3b8;--border:#2c3244;--accent:#6c8cff;
+          --ok-bg:#12301f;--ok:#5fd08d;--err-bg:#3a1717;--err:#ff8a8a}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;padding:24px}
+  main{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--border);
+       border-radius:16px;padding:28px}
+  .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
+  .tab{padding:10px 18px;text-decoration:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent}
+  .tab.active.vuln{color:var(--err);border-color:var(--err)}
+  .tab.active.secure{color:var(--ok);border-color:var(--ok)}
+  .badge{display:inline-block;font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:14px}
+  .badge.vuln{background:var(--err-bg);color:var(--err)} .badge.secure{background:var(--ok-bg);color:var(--ok)}
+  .note{border-radius:8px;padding:10px 14px;font-size:.88rem;margin-bottom:16px}
+  .note.vuln{background:#fff4e0;color:#9a5b00} .note.secure{background:var(--ok-bg);color:var(--ok)}
+  section{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+  section:last-child{border-bottom:0}
+  h3{margin:0 0 10px;font-size:1rem}
+  input,textarea{width:100%;padding:8px;margin-bottom:8px;border:1px solid var(--border);border-radius:6px;
+                 background:transparent;color:var(--text);font-family:inherit}
+  textarea{min-height:70px;font-family:monospace;font-size:.82rem}
+  button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;
+         margin-right:6px;margin-bottom:6px;font-size:.9rem}
+  button.danger{background:var(--err)}
+  pre{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.8rem;
+      overflow-x:auto;white-space:pre-wrap;word-break:break-all;min-height:20px}
+  .flex{display:flex;gap:8px;flex-wrap:wrap}
+  label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<main>
+  <div class="tabs">
+    <a href="/vulnerable" class="tab" id="tab-vuln">Vulnerable</a>
+    <a href="/secure" class="tab" id="tab-secure">Secure</a>
+  </div>
+  <div id="badgeArea"></div>
+
+  <section>
+    <h3>1. Log in</h3>
+    <label>Username</label><input id="username" value="pulu">
+    <label>Password</label><input id="password" type="password" value="password123">
+    <button onclick="login()">Log in</button>
+    <pre id="loginOut"></pre>
+  </section>
+
+  <section>
+    <h3>2. Current token</h3>
+    <textarea id="tokenBox" placeholder="Token appears here after login, or paste your own to test"></textarea>
+    <div class="flex">
+      <button onclick="callMe()">Call /me</button>
+      <button onclick="callAdmin()">Call /admin</button>
+      <button class="danger" onclick="forgeNone()">Forge alg:none admin token</button>
+    </div>
+    <pre id="apiOut"></pre>
+  </section>
+</main>
+<script>
+  const mode = location.pathname.includes('secure') ? 'secure' : 'vulnerable';
+  const short = mode === 'secure' ? 'secure' : 'vuln';
+  document.getElementById('tab-' + short).classList.add('active', short === 'secure' ? 'secure' : 'vuln');
+  const badge = document.getElementById('badgeArea');
+  if (mode === 'vulnerable') {
+    badge.innerHTML = '<span class="badge vuln">VULNERABLE &mdash; weak secret, alg:none accepted, exp not checked</span>' +
+      '<div class="note vuln">Demo only. Secret is <code>jwt123</code>, tokens expire in 10s but expiry is never checked.</div>';
+  } else {
+    badge.innerHTML = '<span class="badge secure">SECURE &mdash; strong secret, fixed algorithm, expiry enforced</span>' +
+      '<div class="note secure">Tokens expire in 15s and are verified with a fixed algorithm list and a 256-bit random secret.</div>';
+  }
+
+  async function login() {
+    const r = await fetch('/' + mode + '/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.value, password: password.value })
+    });
+    const data = await r.json();
+    document.getElementById('loginOut').textContent = JSON.stringify(data, null, 2);
+    if (data.token) document.getElementById('tokenBox').value = data.token;
+  }
+  async function callApi(path) {
+    const token = document.getElementById('tokenBox').value.trim();
+    const r = await fetch('/' + mode + path, { headers: { Authorization: 'Bearer ' + token } });
+    const data = await r.json().catch(() => ({}));
+    document.getElementById('apiOut').textContent = 'HTTP ' + r.status + '\n' + JSON.stringify(data, null, 2);
+  }
+  function callMe() { callApi('/me'); }
+  function callAdmin() { callApi('/admin'); }
+
+  function b64url(obj) {
+    return btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function forgeNone() {
+    const header = { alg: 'none', typ: 'JWT' };
+    const payload = { username: 'attacker', role: 'admin' };
+    document.getElementById('tokenBox').value = b64url(header) + '.' + b64url(payload) + '.';
+    document.getElementById('apiOut').textContent = 'Forged alg:none token loaded. Click "Call /admin" to try it.';
+  }
+</script>
+</body>
+</html>
